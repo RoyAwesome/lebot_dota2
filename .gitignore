@@ -45,3 +45,5 @@ obj
 *.suo
 *.user
 _ReSharper.*
+
+BotSettings.txt
