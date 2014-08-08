@@ -50,7 +50,7 @@ namespace Dota2APIBot
                 builder.AppendLine("! Signature ");
                 builder.AppendLine("! Description ");
 
-                foreach(Function func in Functions.Where(x => x.Class == type.ClassName))
+                foreach(Function func in Functions.Where(x => x.Class == type.ClassName).OrderBy(x => x.FunctionName))
                 {
                     builder.Append(func.ToWikiFormat());
                 }

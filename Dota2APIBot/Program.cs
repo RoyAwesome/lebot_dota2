@@ -16,13 +16,18 @@ namespace Dota2APIBot
     {
         static void Main(string[] args)
         {
- 
+ /*
             string name = "lebot";
             IRCBot bot = new IRCBot("irc.gamesurge.net", new IrcUser(name, name));
 
             bot.Run();
 
             while (true) ;
+  * */
+
+            BotSettings settings = JsonConvert.DeserializeObject<BotSettings>(File.ReadAllText("BotSettings.txt"));
+            WikiTools.ConnectToWiki(settings);
+            WikiTools.WriteTextToPage("Global.ApplyDamage", "test");
  
           //  FunctionDB db = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText("FunctionDB.txt"));
            // db.Save();
