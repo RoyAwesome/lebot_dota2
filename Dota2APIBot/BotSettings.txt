@@ -1,0 +1,21 @@
+﻿{
+	"BotName": "lebot",
+	"BotChannels": [
+		"#dota2mods"
+		
+	],	
+	"TrustedChannels": [
+		
+	],
+	"TrustedUsers": [
+		   "RoyAwesome"
+           
+	],
+	
+	"VDCLogin": "asdf",
+	"VDCPassword": "adsf",
+	
+	"Logging": "false",
+	"DatabaseFilename": "FunctionDB.txt"
+
+}

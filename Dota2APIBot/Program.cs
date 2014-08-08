@@ -23,7 +23,9 @@ namespace Dota2APIBot
             bot.Run();
 
             while (true) ;
-            
+ 
+          //  FunctionDB db = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText("FunctionDB.txt"));
+           // db.Save();
 
            
         }

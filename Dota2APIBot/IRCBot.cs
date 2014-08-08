@@ -20,26 +20,26 @@ namespace Dota2APIBot
         const bool Logging = false;
 
 
-        string[] AcceptableUsers = new string[]
-        {
-            "RoyAwesome",
-            "tet",
-            "penguinwizzard",
-            "BMD",
-            "SinZ",
-            "Cyborgmatt",
-            "psychonic",
-        };
+        BotSettings Settings;
 
+        /// <summary>
+        /// Returns true if the command can be executed
+        /// </summary>
+        /// <param name="command"></param>
+        /// <returns></returns>
         private bool AccessCheck(IrcCommand command)
         {
-            return command.Destination == "#dotacode" || !AcceptableUsers.Contains(command.Source.Nick);
+            return Settings.TrustedUsers.Contains(command.Source.Nick) || Settings.TrustedChannels.Contains(command.Destination);           
         }
 
         public IRCBot(string ServerAddress, IrcUser USer)
             : base(ServerAddress, USer)
         {
-            if (Logging) LogWriter = new StreamWriter("IRCBotLog.txt");
+            Settings = JsonConvert.DeserializeObject<BotSettings>(File.ReadAllText("BotSettings.txt"));
+
+
+
+            if (Settings.Logging) LogWriter = new StreamWriter("IRCBotLog.txt");
 
 
             this.ConnectionComplete += IRCBot_ConnectionComplete;
@@ -57,15 +57,16 @@ namespace Dota2APIBot
 
         void IRCBot_ConnectionComplete(object sender, EventArgs e)
         {
-            JoinChannel("#dota2mods");
-            JoinChannel("#dotacode");
-
+            foreach(string channel in Settings.BotChannels)
+            {
+                JoinChannel(channel);
+            }         
 
         }
         void bot_RawMessage(object sender, RawMessageEventArgs e)
         {
             Console.WriteLine(e.Message);
-            if (Logging)
+            if (Settings.Logging)
             {
                 LogWriter.WriteLine(e.Message);
                 LogWriter.Flush();
@@ -76,7 +77,7 @@ namespace Dota2APIBot
 
         public string DumpWiki(IrcCommand command)
         {
-            if (AccessCheck(command)) return "No Permision";
+            if (!AccessCheck(command)) return "No Permision";
             database.WikiDump();
             return "Done";
         }
@@ -167,7 +168,7 @@ namespace Dota2APIBot
             }
             if(command.Parameters[1] == "properties")
             {
-                return "properties: [Class, FunctionDescription, ReturnType, ReturnDescription]";
+                return "properties: [Class, FunctionDescription, ReturnType, ReturnDescription, Example]";
             }
             string FunctionName = command.Parameters[0];
 
@@ -229,6 +230,11 @@ namespace Dota2APIBot
             {
                 if (action == "modify") func.ReturnType = data;
                 if (action == "view") return func.ReturnType;
+            }
+            if (property == "Example".ToLower())
+            {
+                if (action == "modify") func.Example = data;
+                if (action == "view") return func.Example;
             }
 
             if (action == "modify") database.Save();

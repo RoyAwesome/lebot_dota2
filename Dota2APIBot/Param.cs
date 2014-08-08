@@ -48,6 +48,8 @@ namespace Dota2APIBot
         public string ReturnType { get; set; }
         public string ReturnDescription { get; set; }
 
+        public string Example { get; set; }
+
         public Function()
         {
             FunctionName = "Unknown";
@@ -56,6 +58,8 @@ namespace Dota2APIBot
             FunctionDescription = "No Description Set";
             ReturnType = "Unknown";
             ReturnDescription = "No Description Set";
+
+            Example = "";
         }
 
         public string ToIRCFormat()
