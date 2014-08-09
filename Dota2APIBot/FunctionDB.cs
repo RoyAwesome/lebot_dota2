@@ -12,6 +12,7 @@ namespace Dota2APIBot
     {
         public List<Function> Functions = new List<Function>();
         public List<ClassType> Classes = new List<ClassType>();
+        public string DatabaseHeader = "";
 
 
         public string[] LookupFunction(string searchText)
@@ -26,14 +27,23 @@ namespace Dota2APIBot
             File.WriteAllText("FunctionDB.txt", text);
         }
 
-        public void WikiDump()
+        public string WikiDump()
         {
             //Wiki markup dump
             StringBuilder builder = new StringBuilder();
+
+            builder.AppendLine(DatabaseHeader);
+
+            
+           
+            builder.AppendLine("__TOC__");
+
             foreach(ClassType type in Classes)
             {
 
                 builder.AppendLine("=== " + type.ClassName + " ===");
+
+                
                 if (type.BaseClass != "")
                 {
                     builder.AppendLine(":::::extends [[#" + type.BaseClass + "| " + type.BaseClass + "]]");
@@ -60,7 +70,7 @@ namespace Dota2APIBot
                 builder.AppendLine();
             }
 
-            File.WriteAllText("OutputWikiDump.txt", builder.ToString());
+           return builder.ToString();
 
         }
     }

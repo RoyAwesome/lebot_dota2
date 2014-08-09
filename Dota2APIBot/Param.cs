@@ -35,7 +35,7 @@ namespace Dota2APIBot
             Description = "No Description Set";
         }
 
-      
+
     }
 
     public class Function
@@ -50,6 +50,8 @@ namespace Dota2APIBot
 
         public string Example { get; set; }
 
+        public DateTime NextUpdate { get; set; }
+
         public Function()
         {
             FunctionName = "Unknown";
@@ -60,6 +62,7 @@ namespace Dota2APIBot
             ReturnDescription = "No Description Set";
 
             Example = "";
+            NextUpdate = DateTime.Now + TimeSpan.FromDays(1);
         }
 
         public string ToIRCFormat()
@@ -68,20 +71,20 @@ namespace Dota2APIBot
             string functionheader = string.Format("{0} {1}:{2}(", ReturnType, Class, FunctionName);
             if (Params.Count != 0)
             {
-                for(int i = 0; i < Params.Count; i++)
+                for (int i = 0; i < Params.Count; i++)
                 {
                     Param p = Params[i];
 
                     functionheader += string.Format("{0} {1}", p.Type, p.Name);
 
-                    if(i != Params.Count - 1)
+                    if (i != Params.Count - 1)
                     {
                         functionheader += ", ";
                     }
-                    
+
 
                 }
-              
+
             }
 
             functionheader += ") - " + FunctionDescription;
@@ -102,14 +105,14 @@ namespace Dota2APIBot
             {
                 for (int i = 0; i < Params.Count; i++)
                 {
-                     Param p = Params[i];
-                     wikiFormat += string.Format("{0} {1}", p.Type, p.Name);
+                    Param p = Params[i];
+                    wikiFormat += string.Format("{0} {1}", p.Type, p.Name);
 
-                     if (i != Params.Count - 1)
-                     {
-                         wikiFormat += ", ";
-                     }
-                    
+                    if (i != Params.Count - 1)
+                    {
+                        wikiFormat += ", ";
+                    }
+
                 }
 
             }
@@ -120,7 +123,90 @@ namespace Dota2APIBot
 
             return wikiFormat;
         }
+
+        public string ToDetailedWikiFormat()
+        {
+
+            StringBuilder page = new StringBuilder();
+            //HEADER
+            page.AppendLine("{{Note | This page is automatically generated.  Any changes may be overwritten}}");
+            page.AppendLine();
+            page.AppendLine("== Function Description ==");
+            page.AppendLine();
+            page.AppendLine();
+
+            //Function Name
+            page.Append("''' " + ReturnType + " " + FunctionName + "(");
+            for (int i = 0; i < Params.Count; i++)
+            {
+                Param p = Params[i];
+                page.Append(p.Type + " ''" + p.Name + "''");
+                if (i != Params.Count - 1)
+                {
+                    page.Append(", ");
+                }
+            }
+            page.AppendLine(") '''");
+            page.AppendLine();
+
+            //Function Description
+            page.AppendFormat("''{0}''", FunctionDescription);
+
+            page.AppendLine();
+            page.AppendLine();
+            page.AppendLine();
+            page.AppendLine();
+
+            if(Example != "")
+            {
+                //Example
+                page.AppendLine(";Example");
+                page.AppendLine(@"<source lang=""lua"">");
+                page.AppendLine(Example);
+                page.AppendLine("</source>");
+            }           
+
+
+            //Parameters
+            if (Params.Count != 0)
+            {
+
+
+                page.AppendLine("== Parameters ==");
+                page.AppendLine(@"{| class=""standard-table"" style=""width: 50%;""");
+                page.AppendLine("! Type");
+                page.AppendLine("! Name");
+                page.AppendLine("! Description");
+
+                for (int i = 0; i < Params.Count; i++)
+                {
+                    Param p = Params[i];
+                    page.AppendLine("|-");
+                    page.AppendLine("| " + p.Type);
+                    page.AppendLine("| " + p.Name);
+                    page.AppendLine("| " + p.Description);
+                }
+                page.AppendLine("|}");
+            }
+
+            //RETVAL
+            if (ReturnType != "void")
+            {
+
+                page.AppendLine();
+                page.AppendLine("== Returns ==");
+                page.AppendLine();
+
+                page.AppendFormat("''{0}'' - {1}", ReturnType, ReturnDescription);
+                page.AppendLine();
+            }
+
+
+            return page.ToString();
+        }
     }
 
-   
+
+
+
 }

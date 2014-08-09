@@ -23,6 +23,16 @@ namespace Dota2APIBot
         const string UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36";
 
 
+        static Dictionary<string, string> Captchas = new Dictionary<string, string>()
+        {
+            {"There are three words that make up this site's name. What is the first letter of the *second* word?", "d"},
+            {"What is Valve CEO Gabe Newell's first name?", "gabe"},
+            {"What is the company name in 'Valve Developer Community?'", "valve"},
+            {"This site's name is three words. What is the first letter of the *third* word?", "c"},
+            {"This site's name consists of three words. What is the first letter of the *first* word?", "v"},
+
+
+        };
 
 
         public static void ConnectToWiki(BotSettings settings)
@@ -76,10 +86,16 @@ namespace Dota2APIBot
 
         };
 
+        static Regex captcha = new Regex(@"<label for=""wpCaptchaWord"">.+</label>", RegexOptions.Compiled);
+
+        static Regex captchaflag = new Regex(@"<input type=""hidden"" name=""wpCaptchaId"" id=""wpCaptchaId"" value="".+"" />", RegexOptions.Compiled);
+
         public static void WriteTextToPage(string Page, string Content)
         {
 
-            string Editurl = VDCWiki + "/w/index.php?title=Dota_2_Workshop_Tools/Scripting/API/" + Page ;
+            string Editurl = VDCWiki + "/w/index.php?title=Dota_2_Workshop_Tools/Scripting/API";
+            if(Page != "") Editurl += "/" + Page;
+                
 
             string page = wc.DownloadString(Editurl + "&action=edit");
 
@@ -89,30 +105,19 @@ namespace Dota2APIBot
 
             string match;
 
-            
-             string boundry = "----WebKitFormBoundarymI2XVIzC2NkASaVa";
-
-            HttpWebRequest wr = WebRequest.Create(Editurl + "&action=submit") as HttpWebRequest;
-            wr.Method = "POST";
+          
+            string boundry = "----WebKitFormBoundarymI2XVIzC2NkASaVa";
 
             StringBuilder header = new StringBuilder();
-
-            wr.CookieContainer = wc.container;
-            wr.ContentType = "multipart/form-data; boundary=" + boundry;
-            wr.KeepAlive = true;
-            wr.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";            
-            wr.UserAgent = UserAgent;
-
-
 
 
 
             header.Append("--" + boundry + "\r\n");
             string content = "Content-Disposition: form-data; name=\"{0}\"";
 
-          
 
-            foreach(KeyValuePair<string, Regex> regex in Matches)
+
+            foreach (KeyValuePair<string, Regex> regex in Matches)
             {
                 match = regex.Value.Match(page).Value;
                 s = match.IndexOf(search) + search.Length;
@@ -126,15 +131,7 @@ namespace Dota2APIBot
                 header.Append(match);
                 header.Append("\r\n--" + boundry + "\r\n");
 
-            
-
             }
-
-           
-           
-
-            Content = "Returns the Damage Done";
-
 
             header.Append(string.Format(content, "wpScrollTop"));
             header.Append("\r\n");
@@ -166,30 +163,86 @@ namespace Dota2APIBot
             header.Append("\r\n");
             header.Append("\r\n");
             header.Append("");
-            header.Append("\r\n--" + boundry + "--\r\n");
+
+            string endBoundry = "\r\n--" + boundry + "--\r\n";
+            string text = SendDataToWebsite(Editurl, header.ToString() + endBoundry);
+
+            
+            //Check to see if the response has a captcha in it
+            Match m = captchaflag.Match(text);
+
+            //Uncaptcha this 
+            if (m.Success)
+            {
+                string label = @"<label for=""wpCaptchaWord"">";
+                s = text.IndexOf(label) + label.Length;
+                e = text.IndexOf("</label>", s + 1);
+
+                string captcha = text.Substring(s, e - s);
+
+                string answer = Captchas[captcha];
+
+                label = @"id=""wpCaptchaId"" value=""";
+                s = text.IndexOf(label) + label.Length;
+                e = text.IndexOf("\"", s + 1);
+
+                string id = text.Substring(s, e - s);
 
 
-            Stream req = wr.GetRequestStream();
+                header.Append("\r\n--" + boundry + "\r\n");
+                header.Append(string.Format(content, "wpCaptchaWord"));
+                header.Append("\r\n");
+                header.Append("\r\n");
+                header.Append(answer);
 
-            byte[] data = Encoding.ASCII.GetBytes(header.ToString());
+                header.Append("\r\n--" + boundry + "\r\n");
+                header.Append(string.Format(content, "wpCaptchaId"));
+                header.Append("\r\n");
+                header.Append("\r\n");
+                header.Append(id);
 
-            req.Write(data, 0, data.Length);
+                string res = SendDataToWebsite(Editurl, header.ToString() + endBoundry);
 
-            WebResponse response = wr.GetResponse();
+            }
 
-            StreamReader sr = new StreamReader(response.GetResponseStream());
 
-            string text = sr.ReadToEnd();
 
             string newPage = "https://developer.valvesoftware.com/wiki/Dota_2_Workshop_Tools/Scripting/API/" + Page;
 
             wc.DownloadString(newPage);
 
-         
-           
+
+
         }
 
+        private static string SendDataToWebsite(string URL, string data)
+        {
+            string boundry = "----WebKitFormBoundarymI2XVIzC2NkASaVa";
 
+            HttpWebRequest wr = WebRequest.Create(URL + "&action=submit") as HttpWebRequest;
+            wr.Method = "POST";
+
+
+            wr.CookieContainer = wc.container;
+            wr.ContentType = "multipart/form-data; boundary=" + boundry;
+            wr.KeepAlive = true;
+            wr.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
+            wr.UserAgent = UserAgent;
+
+            Stream req = wr.GetRequestStream();
+
+            byte[] buff = Encoding.ASCII.GetBytes(data);
+
+            req.Write(buff, 0, buff.Length);
+
+
+            WebResponse response = wr.GetResponse();
+
+            StreamReader sr = new StreamReader(response.GetResponseStream());
+
+            return sr.ReadToEnd();
+
+        }
 
     }
 }
