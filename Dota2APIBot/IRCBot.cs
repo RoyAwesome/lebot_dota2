@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using IrcBotFramework;
 using Newtonsoft.Json;
 using System.IO;
+using System.Net;
+using System.Threading;
 
 
 namespace Dota2APIBot
@@ -22,6 +24,9 @@ namespace Dota2APIBot
 
         BotSettings Settings;
 
+
+
+
         /// <summary>
         /// Returns true if the command can be executed
         /// </summary>
@@ -29,7 +34,7 @@ namespace Dota2APIBot
         /// <returns></returns>
         private bool AccessCheck(IrcCommand command)
         {
-            return Settings.TrustedUsers.Contains(command.Source.Nick) || Settings.TrustedChannels.Contains(command.Destination);           
+            return Settings.TrustedUsers.Contains(command.Source.Nick) || Settings.TrustedChannels.Contains(command.Destination);
         }
 
         public IRCBot(string ServerAddress, IrcUser USer)
@@ -53,14 +58,18 @@ namespace Dota2APIBot
             RegisterCommand("function", FunctionMod);
             RegisterCommand("param", ParamMod);
             RegisterCommand("dumpwiki", DumpWiki);
+            RegisterCommand("writepage", ForceWriteWikiPage);
+
+            RegisterCommand("writeallpages", UpdateAllWikiPages);
+            RegisterCommand("updatestatus", WikiStatus);
         }
 
         void IRCBot_ConnectionComplete(object sender, EventArgs e)
         {
-            foreach(string channel in Settings.BotChannels)
+            foreach (string channel in Settings.BotChannels)
             {
                 JoinChannel(channel);
-            }         
+            }
 
         }
         void bot_RawMessage(object sender, RawMessageEventArgs e)
@@ -78,8 +87,76 @@ namespace Dota2APIBot
         public string DumpWiki(IrcCommand command)
         {
             if (!AccessCheck(command)) return "No Permision";
-            database.WikiDump();
+            if (Worker != null) return "Writer in use";
+
+            WikiTools.ConnectToWiki(Settings);
+            WikiTools.WriteTextToPage("", database.WikiDump());
+
             return "Done";
+        }
+
+        public string ForceWriteWikiPage(IrcCommand command)
+        {
+            if (!AccessCheck(command)) return "No Permision";
+
+            if (Worker != null) return "Writer in use";
+
+            string functionName = command.Parameters[0];
+
+            Function f = database.Functions.FirstOrDefault(x => x.FunctionName == functionName);
+            if (f == null) return "Function not found";
+
+            string pageName = f.Class + "." + f.FunctionName;
+
+            WikiTools.ConnectToWiki(Settings);
+            WikiTools.WriteTextToPage(pageName, f.ToDetailedWikiFormat());
+
+            return "Done";
+        }
+
+        volatile int Total;
+        volatile int Done;
+        volatile string PageBeingWritten;
+
+        Thread Worker;
+
+        public string UpdateAllWikiPages(IrcCommand command)
+        {
+            if (!AccessCheck(command)) return "No Permision";
+
+            if (Worker != null) return "Job Running, do .wikistatus to see where the job is";
+
+
+
+            Worker = new Thread(() =>
+            {
+
+                int total = database.Functions.Count;
+
+                WikiTools.ConnectToWiki(Settings);
+
+                for (int i = 0; i < database.Functions.Count; i++)
+                {
+                    Function f = database.Functions[i];
+                    string pageName = f.Class + "." + f.FunctionName;
+                    PageBeingWritten = pageName;
+                    Done = i;
+                    string wikiText = f.ToDetailedWikiFormat();
+
+                    WikiTools.WriteTextToPage(pageName, wikiText);
+                }
+
+                Worker = null;
+            });
+            Worker.Start();
+
+            return "Job In Progress";
+        }
+
+        public string WikiStatus(IrcCommand command)
+        {
+            if (Worker == null) return "No Job In Progress";
+            return "Page: " + PageBeingWritten + " (" + Done + "/" + database.Functions.Count + ")";
         }
 
 
@@ -90,13 +167,13 @@ namespace Dota2APIBot
 
         public string ModifyClass(IrcCommand command)
         {
-            
+
 
             if (command.Parameters.Length == 0 || command.Parameters[0] == "help")
             {
                 return "'class <string classname> <action> <property> [data]' OR 'class find <searchtext>' OR 'class properties'";
             }
-            if(command.Parameters[0] == "properties") return "properties: [Description, Accessor, BaseClass]";
+            if (command.Parameters[0] == "properties") return "properties: [Description, Accessor, BaseClass]";
 
             string ClassName = command.Parameters[0];
 
@@ -122,11 +199,17 @@ namespace Dota2APIBot
             }
 
 
+
             ClassType clazz = database.Classes.FirstOrDefault(x => x.ClassName == ClassName);
 
             if (clazz == null) return "Class Not Found";
 
             string action = command.Parameters[1].ToLower();
+
+            if (action == "modify" && !AccessCheck(command))
+            {
+                return "No Permision";
+            }
 
             string property = command.Parameters[2].ToLower();
 
@@ -134,6 +217,12 @@ namespace Dota2APIBot
             Array.Copy(command.Parameters, 3, cpy, 0, cpy.Length);
 
             string data = string.Join(" ", cpy);
+
+            if (data.StartsWith("http://hastebin.com/raw/"))
+            {
+                data = QuickDownload(data);
+            }
+
 
 
             if (property == "accessor".ToLower())
@@ -166,7 +255,7 @@ namespace Dota2APIBot
             {
                 return "'function <string funcName> <action (modify or view)> <property> [data]' OR 'function find <searchtext>' OR 'function properties'";
             }
-            if(command.Parameters[1] == "properties")
+            if (command.Parameters[1] == "properties")
             {
                 return "properties: [Class, FunctionDescription, ReturnType, ReturnDescription, Example]";
             }
@@ -199,6 +288,10 @@ namespace Dota2APIBot
             if (func == null) return "Function Not Found";
 
             string action = command.Parameters[1].ToLower();
+            if (action == "modify" && !AccessCheck(command))
+            {
+                return "No Permision";
+            }
 
             string property = command.Parameters[2].ToLower();
 
@@ -206,6 +299,11 @@ namespace Dota2APIBot
             Array.Copy(command.Parameters, 3, cpy, 0, cpy.Length);
 
             string data = string.Join(" ", cpy);
+
+            if (data.StartsWith("http://hastebin.com/raw/"))
+            {
+                data = QuickDownload(data);
+            }
 
 
             if (property == "FunctionDescription".ToLower())
@@ -237,7 +335,11 @@ namespace Dota2APIBot
                 if (action == "view") return func.Example;
             }
 
-            if (action == "modify") database.Save();
+            if (action == "modify")
+            {
+                func.LastUpdate = DateTime.Now;
+                database.Save();
+            }
 
             return "[" + action + "] " + FunctionName + "'s " + property + " is now " + data;
 
@@ -262,7 +364,7 @@ namespace Dota2APIBot
                 if (f == null) return "Function Not Found";
 
                 int i;
-                for(i = 0; i < f.Params.Count - 1; i++)
+                for (i = 0; i < f.Params.Count - 1; i++)
                 {
                     SendMessage(command.Destination, "(" + i + ") " + f.Params[i].Type + " " + f.Params[i].Name);
                 }
@@ -280,6 +382,10 @@ namespace Dota2APIBot
             Param param = func.Params[paramId];
 
             string action = command.Parameters[2].ToLower();
+            if (action == "modify" && !AccessCheck(command))
+            {
+                return "No Permision";
+            }
 
             string property = command.Parameters[3].ToLower();
 
@@ -288,6 +394,10 @@ namespace Dota2APIBot
 
             string data = string.Join(" ", cpy);
 
+            if (data.StartsWith("http://hastebin.com/raw/"))
+            {
+                data = QuickDownload(data);
+            }
 
             if (property == "Name".ToLower())
             {
@@ -307,11 +417,21 @@ namespace Dota2APIBot
                 if (action == "view") return param.Description;
             }
 
-            if (action == "modify") database.Save();
+
+            if (action == "modify")
+            {
+                func.LastUpdate = DateTime.Now;
+                database.Save();
+            }
 
             return "[" + action + "] " + FunctionName + "'s " + property + " is now " + data;
         }
 
+        private string QuickDownload(string url)
+        {
+            WebClient wc = new WebClient();
+            return wc.DownloadString(url);
+        }
     }
 
 }

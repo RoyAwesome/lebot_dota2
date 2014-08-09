@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 using IrcBotFramework;
 
@@ -16,31 +17,62 @@ namespace Dota2APIBot
     {
         static void Main(string[] args)
         {
+            
+            string name = "lebot";
+            IRCBot bot = new IRCBot("irc.gamesurge.net", new IrcUser(name, name));
+
+            bot.Run();
+
+            while (true) ;
+            
+
             /*
-                       string name = "lebot";
-                       IRCBot bot = new IRCBot("irc.gamesurge.net", new IrcUser(name, name));
 
-                       bot.Run();
-
-                       while (true) ;
-             */
+            JObject jo = JObject.Parse(File.ReadAllText("WikiDump.txt"));
 
             FunctionDB db = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText("FunctionDB.txt"));
 
-              BotSettings settings = JsonConvert.DeserializeObject<BotSettings>(File.ReadAllText("BotSettings.txt"));
-              WikiTools.ConnectToWiki(settings);
 
-              WikiTools.WriteTextToPage("", db.WikiDump());
+            foreach(var j in jo)
+            {
+                string classname = j.Key;
+                string description = (string)j.Value["description"];
 
-             /* foreach(Function f in db.Functions.Where(x => x.Class == "CDOTAPlayer" ))
-              {
+                ClassType c = db.Classes.FirstOrDefault(x => x.ClassName.ToLower() == classname.ToLower());
+                c.Description = description;
 
-                  WikiTools.WriteTextToPage(f.Class + "." + f.FunctionName, f.ToDetailedWikiFormat());
-              } */
+                foreach(var f in j.Value["funcs"].Children())
+                {
+                    string functionName;
+                    if(f.Type == JTokenType.Property)
+                    {
+                        JProperty p = (JProperty)f;
 
+                        functionName = p.Name;
+
+                        Function func = db.Functions.FirstOrDefault(x => x.FunctionName.ToLower() == functionName.ToLower() && x.Class.ToLower() == classname.ToLower());
+
+                        string desc = (string)p.Value["description"];
+
+                        func.FunctionDescription = desc;
+
+                        for(int i = 0; i < p.Value["args"].Count(); i++)
+                        {
+                            string val = (string)p.Value["args"][i];
+                            func.Params[i].Name = val;
+                        }
+                        func.LastUpdate = DateTime.Now;
+                    }
+
+                   
+                }
+
+            }
+
+           
 
             db.Save();
-
+             * */
 
         }
 

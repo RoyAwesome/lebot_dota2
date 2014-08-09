@@ -13,6 +13,7 @@ namespace Dota2APIBot
         public List<Function> Functions = new List<Function>();
         public List<ClassType> Classes = new List<ClassType>();
         public string DatabaseHeader = "";
+        public DateTime LastPush = DateTime.Now;
 
 
         public string[] LookupFunction(string searchText)

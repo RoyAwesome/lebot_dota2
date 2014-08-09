@@ -59,5 +59,9 @@ namespace Dota2APIBot
         {
             return source.IndexOf(toCheck, comp) >= 0;
         }
+
+
+      
+
     }
 }

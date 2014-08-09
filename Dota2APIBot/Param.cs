@@ -50,7 +50,7 @@ namespace Dota2APIBot
 
         public string Example { get; set; }
 
-        public DateTime NextUpdate { get; set; }
+        public DateTime LastUpdate { get; set; }
 
         public Function()
         {
@@ -62,7 +62,7 @@ namespace Dota2APIBot
             ReturnDescription = "No Description Set";
 
             Example = "";
-            NextUpdate = DateTime.Now + TimeSpan.FromDays(1);
+            LastUpdate = DateTime.Now;
         }
 
         public string ToIRCFormat()
@@ -74,8 +74,10 @@ namespace Dota2APIBot
                 for (int i = 0; i < Params.Count; i++)
                 {
                     Param p = Params[i];
+                    string pname = p.Name;
+                    if (pname == "") pname = Letters[i].ToString();
 
-                    functionheader += string.Format("{0} {1}", p.Type, p.Name);
+                    functionheader += string.Format("{0} {1}", p.Type, pname);
 
                     if (i != Params.Count - 1)
                     {
@@ -87,7 +89,7 @@ namespace Dota2APIBot
 
             }
 
-            functionheader += ") - " + FunctionDescription;
+            functionheader += ") - " + WikiTools.APIPage + "/"+Class + "." + FunctionName;
 
             return functionheader;
 
@@ -106,7 +108,10 @@ namespace Dota2APIBot
                 for (int i = 0; i < Params.Count; i++)
                 {
                     Param p = Params[i];
-                    wikiFormat += string.Format("{0} {1}", p.Type, p.Name);
+                    string pname = p.Name;
+                    if (pname == "") pname = Letters[i].ToString();
+
+                    wikiFormat += string.Format("{0} {1}", p.Type, pname);
 
                     if (i != Params.Count - 1)
                     {
@@ -123,7 +128,7 @@ namespace Dota2APIBot
 
             return wikiFormat;
         }
-
+        const string Letters = "abcdefghijklmnopqrstuvwxyz";
         public string ToDetailedWikiFormat()
         {
 
@@ -140,7 +145,9 @@ namespace Dota2APIBot
             for (int i = 0; i < Params.Count; i++)
             {
                 Param p = Params[i];
-                page.Append(p.Type + " ''" + p.Name + "''");
+                string pname = p.Name;
+                if (pname == "") pname = Letters[i].ToString();
+                page.Append(p.Type + " ''" + pname + "''");
                 if (i != Params.Count - 1)
                 {
                     page.Append(", ");
@@ -183,7 +190,10 @@ namespace Dota2APIBot
                     Param p = Params[i];
                     page.AppendLine("|-");
                     page.AppendLine("| " + p.Type);
-                    page.AppendLine("| " + p.Name);
+                    string pname = p.Name;
+                    if (pname == "") pname = Letters[i].ToString();
+
+                    page.AppendLine("| " + pname);
                     page.AppendLine("| " + p.Description);
                 }
                 page.AppendLine("|}");

@@ -22,6 +22,8 @@ namespace Dota2APIBot
 
         const string UserAgent = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36";
 
+        public const string APIPage = VDCWiki + "/w/index.php?title=Dota_2_Workshop_Tools/Scripting/API";
+
 
         static Dictionary<string, string> Captchas = new Dictionary<string, string>()
         {
@@ -34,6 +36,7 @@ namespace Dota2APIBot
 
         };
 
+    
 
         public static void ConnectToWiki(BotSettings settings)
         {
