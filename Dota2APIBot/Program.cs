@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 using IrcBotFramework;
+using System.Threading;
 
 
 namespace Dota2APIBot
@@ -23,56 +24,30 @@ namespace Dota2APIBot
 
             bot.Run();
 
-            while (true) ;
-            
+            TimeSpan WikiPushInterval = TimeSpan.FromHours(3);
 
-            /*
-
-            JObject jo = JObject.Parse(File.ReadAllText("WikiDump.txt"));
-
-            FunctionDB db = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText("FunctionDB.txt"));
-
-
-            foreach(var j in jo)
+            DateTime NextUpdate = DateTime.Now + WikiPushInterval;
+            while (true)
             {
-                string classname = j.Key;
-                string description = (string)j.Value["description"];
-
-                ClassType c = db.Classes.FirstOrDefault(x => x.ClassName.ToLower() == classname.ToLower());
-                c.Description = description;
-
-                foreach(var f in j.Value["funcs"].Children())
+                if(DateTime.Now > NextUpdate)
                 {
-                    string functionName;
-                    if(f.Type == JTokenType.Property)
-                    {
-                        JProperty p = (JProperty)f;
-
-                        functionName = p.Name;
-
-                        Function func = db.Functions.FirstOrDefault(x => x.FunctionName.ToLower() == functionName.ToLower() && x.Class.ToLower() == classname.ToLower());
-
-                        string desc = (string)p.Value["description"];
-
-                        func.FunctionDescription = desc;
-
-                        for(int i = 0; i < p.Value["args"].Count(); i++)
-                        {
-                            string val = (string)p.Value["args"][i];
-                            func.Params[i].Name = val;
-                        }
-                        func.LastUpdate = DateTime.Now;
-                    }
-
-                   
+                    bot.UpdatePages();
+                    NextUpdate = DateTime.Now + WikiPushInterval;
                 }
 
-            }
+                Thread.Sleep(1000);
 
-           
+            };
+            
+                   /*   
+            FunctionDB db = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText("FunctionDB.txt"));
+
+            string rst = db.RSTDump();
+
+            File.WriteAllText("apidump.rst", rst);
 
             db.Save();
-             * */
+             */
 
         }
 

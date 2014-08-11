@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using System.IO;
 
 namespace Dota2APIBot
 {
@@ -16,5 +18,10 @@ namespace Dota2APIBot
         public string VDCPassword { get; set; }
         public bool Logging { get; set; }
         public string DatabaseFilename { get; set; }
+
+        public void Save()
+        {
+            File.WriteAllText("BotSettings.txt", JsonConvert.SerializeObject(this));
+        }
     }
 }

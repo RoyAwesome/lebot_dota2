@@ -65,6 +65,39 @@ namespace Dota2APIBot
             LastUpdate = DateTime.Now;
         }
 
+        public string GetQualifiedName()
+        {
+            return Class + "." + FunctionName;
+        }
+
+        public string GetSimpleName()
+        {
+            string name = FunctionName;
+            name += "(";
+            for (int i = 0; i < Params.Count; i++)
+            {
+                Param p = Params[i];
+                string pname = p.Name;
+                if (pname == "") pname = Letters[i].ToString();
+
+                name += string.Format("{0} {1}", p.Type, pname);
+
+                if (i != Params.Count - 1)
+                {
+                    name += ", ";
+                }
+            }
+
+            name += ")";
+
+            return name;
+        }
+
+        public string GetFullName()
+        {
+            return Class + "." + GetSimpleName();
+        }
+
         public string ToIRCFormat()
         {
             //ret ClassName::FunctionName(p1, p2, p3) - Description
@@ -135,6 +168,8 @@ namespace Dota2APIBot
             StringBuilder page = new StringBuilder();
             //HEADER
             page.AppendLine("{{Note | This page is automatically generated.  Any changes may be overwritten}}");
+            page.AppendLine("[[Category:Dota2Function]]");
+            page.AppendFormat("[[Category:{0}]]\n", Class);
             page.AppendLine();
             page.AppendLine("== Function Description ==");
             page.AppendLine();
