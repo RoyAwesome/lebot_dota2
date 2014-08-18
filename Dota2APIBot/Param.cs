@@ -157,7 +157,9 @@ namespace Dota2APIBot
 
             wikiFormat += ") </code>\n";
 
-            wikiFormat += string.Format("| {0}\n", FunctionDescription);
+            string[] lines = FunctionDescription.Split('\n');
+
+            wikiFormat += string.Format("| {0}\n", lines[0]);
 
             return wikiFormat;
         }

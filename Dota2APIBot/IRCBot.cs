@@ -17,7 +17,7 @@ namespace Dota2APIBot
     class IRCBot : IrcBotFramework.IrcBot
     {
 
-       
+
         static StreamWriter LogWriter;
         const bool Logging = false;
 
@@ -51,7 +51,7 @@ namespace Dota2APIBot
 
             this.RawMessageRecieved += bot_RawMessage;
 
-       
+
             RegisterCommand("ping", Ping);
             RegisterCommand("class", ModifyClass);
             RegisterCommand("function", FunctionMod);
@@ -66,13 +66,13 @@ namespace Dota2APIBot
             RegisterCommand("reload", Reload);
         }
 
-    
+
         public void UpdatePages(bool force = false)
         {
             Worker = new Thread(() =>
             {
                 FunctionDB database = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText(Settings.DatabaseFilename));
-             
+
                 Total = database.Functions.Count;
 
                 WikiTools.ConnectToWiki(Settings);
@@ -96,7 +96,7 @@ namespace Dota2APIBot
                     Updated = true;
                 }
 
-                if(Updated) WikiTools.WriteTextToPage("", database.WikiDump());
+                if (Updated) WikiTools.WriteTextToPage("", database.WikiDump());
 
 
                 database = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText(Settings.DatabaseFilename));
@@ -107,7 +107,7 @@ namespace Dota2APIBot
                 Worker = null;
             });
 
-            
+
 
 
             Worker.Start();
@@ -142,12 +142,12 @@ namespace Dota2APIBot
 
             string user = command.Parameters[1];
 
-            if(action == "add")
+            if (action == "add")
             {
                 Settings.TrustedUsers.Add(user);
 
             }
-            if(action == "remove")
+            if (action == "remove")
             {
                 Settings.TrustedUsers.Remove(user);
             }
@@ -161,7 +161,7 @@ namespace Dota2APIBot
         {
             if (!AccessCheck(command)) return "No Permision";
 
-              Settings = JsonConvert.DeserializeObject<BotSettings>("BotSettings.txt");
+            Settings = JsonConvert.DeserializeObject<BotSettings>("BotSettings.txt");
 
             return "Done";
 
@@ -218,8 +218,8 @@ namespace Dota2APIBot
             if (command.Parameters.Length > 0 && command.Parameters[0] == "force") force = true;
 
             UpdatePages(force);
-            
-           
+
+
             return "Job In Progress";
         }
 
@@ -237,7 +237,7 @@ namespace Dota2APIBot
 
         public string ModifyClass(IrcCommand command)
         {
-            
+
 
             if (command.Parameters.Length == 0 || command.Parameters[0] == "help")
             {
@@ -297,7 +297,7 @@ namespace Dota2APIBot
             }
 
 
-          
+
             ClassType clazz = database.Classes.FirstOrDefault(x => x.ClassName == ClassName);
 
             if (clazz == null) return "Class Not Found";
@@ -332,7 +332,7 @@ namespace Dota2APIBot
 
             if (action == "modify") database.Save();
 
-            return "[" + action + "] " + ClassName + "'s " + property + " is now " + data;
+            return "[" + action + "] " + ClassName + "'s " + property + " has been set";
         }
 
 
@@ -346,13 +346,13 @@ namespace Dota2APIBot
             {
                 PropertyInfo[] props = typeof(Function).GetProperties();
                 string availableProperties = "";
-                for (int i = 0; i < props.Length; i++ )
+                for (int i = 0; i < props.Length; i++)
                 {
                     availableProperties += props[i].Name;
                     if (i != props.Length - 1) availableProperties += ", ";
                 }
 
-                    return "properties: [" +availableProperties + "]";
+                return "properties: [" + availableProperties + "]";
             }
             string FunctionName = command.Parameters[0];
 
@@ -380,7 +380,7 @@ namespace Dota2APIBot
                 }
             }
 
-            if(FunctionName == "add")
+            if (FunctionName == "add")
             {
                 if (!command.Parameters[1].StartsWith("http://hastebin.com/raw/")) return "Please give me a raw hastebin link with the json blob to add";
 
@@ -393,8 +393,46 @@ namespace Dota2APIBot
                 return "Added " + f.GetQualifiedName();
             }
 
-     
-            Function func = database.Functions.FirstOrDefault(x => x.FunctionName == FunctionName);
+            if (FunctionName == "<replace>")
+            {
+                if (command.Parameters.Length != 3) return ".function <replace> oldFuncName hastebinblob";
+
+                string functionName = command.Parameters[1];
+
+                if (!command.Parameters[2].StartsWith("http://hastebin.com/raw/")) return "Please give me a raw hastebin link with the json blob to replace";
+
+                string json = QuickDownload(command.Parameters[2]);
+
+                Function f = JsonConvert.DeserializeObject<Function>(json);
+
+                Function oldfunc = database.Functions.FirstOrDefault(x => x.FunctionName == f.FunctionName && x.Class == f.Class);
+
+                if (oldfunc == null) return "Unable to replace function, cannot find it";
+
+                f.LastUpdate = DateTime.Now;
+                database.Functions.Remove(oldfunc);
+                database.Functions.Add(f);
+                database.Save();
+
+                return "Replaced";
+            }
+
+
+            Function func;
+            if (FunctionName.Contains("."))
+            {
+                string[] spl = FunctionName.Split('.');
+                FunctionName = spl[1];
+                string ClassName = spl[0];
+                func = database.Functions.FirstOrDefault(x => x.FunctionName == FunctionName && ClassName == x.Class);
+            }
+            else
+            {
+                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);
+                if (functions.Count() > 1) return "Ambiguous function name: " + FunctionName + ".  Please use ClassName.FunctionName";
+                func = functions.First();
+            }
+            
 
             if (func == null) return "Function Not Found";
 
@@ -430,7 +468,7 @@ namespace Dota2APIBot
                 database.Save();
             }
 
-            return "[" + action + "] " + FunctionName + "'s " + property + " is now " + data;
+            return "[" + action + "] " + FunctionName + "'s " + property + " is now has been set";
 
         }
 
@@ -457,6 +495,8 @@ namespace Dota2APIBot
 
             string FunctionName = command.Parameters[0];
 
+            
+
             if (FunctionName == "list")
             {
                 Function f = database.Functions.FirstOrDefault(x => x.FunctionName == command.Parameters[2]);
@@ -470,8 +510,23 @@ namespace Dota2APIBot
                 }
                 return "(" + i + ") " + f.Params[i].Type + " " + f.Params[i].Name;
             }
+            Function func;
+            if(FunctionName.Contains("."))
+            {
+                string[] spl = FunctionName.Split('.');
+                FunctionName = spl[1];
+                string ClassName = spl[0];
+                func = database.Functions.FirstOrDefault(x => x.FunctionName == FunctionName && ClassName == x.Class);
+            }
+            else
+            {
+                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);
+                if(functions.Count() > 1) return "Ambiguous function name: " + FunctionName + ".  Please use ClassName.FunctionName";
+                func = functions.First();
+            }
+            
 
-            Function func = database.Functions.FirstOrDefault(x => x.FunctionName == FunctionName);
+
 
             if (func == null) return "Function Not Found";
 
@@ -503,8 +558,8 @@ namespace Dota2APIBot
 
             if (prop == null) return "Property " + property + " Not found";
 
-            if (action == "modify") prop.SetValue(func, data);
-            if (action == "view") return prop.GetValue(func).ToString();
+            if (action == "modify") prop.SetValue(param, data);
+            if (action == "view") return prop.GetValue(param).ToString();
 
 
 
@@ -514,7 +569,7 @@ namespace Dota2APIBot
                 database.Save();
             }
 
-            return "[" + action + "] " + FunctionName + "'s " + property + " is now " + data;
+            return "[" + action + "] " + FunctionName + "'s " + property + " is now has been set";
         }
 
         private string QuickDownload(string url)
