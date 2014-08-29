@@ -16,6 +16,19 @@
 	"VDCPassword": "adsf",
 	
 	"Logging": "false",
-	"DatabaseFilename": "FunctionDB.txt"
+	"DatabaseFilename": "FunctionDB.txt",
+	"VDCCaptchas": {
+	    "There are three words that make up this site's name. What is the first letter of the *second* word?": "d",
+	    "What is Valve CEO Gabe Newell's first name?": "gabe",
+	    "What is the company name in 'Valve Developer Community?'": "valve",
+	    "This site's name is three words. What is the first letter of the *third* word?": "c",
+	    "This site's name consists of three words. What is the first letter of the *first* word?": "v",
+	    "This site's name is three words. What is the *second* letter of the *third* word?": "o",
+	    "What is Valve CEO Gabe Newell's last name?": "newell",
+	    "What is the name of the engine used in such Valve games as Half-Life 2, Portal and in the Source SDK?": "source",
+	    "What is the name of the company that this site is named after?": "valve",
+	    "There are three words that make up this site's name. What is the *second* letter of the *second* word?": "e",
+	    "This site's name consists of three words. What is the *second* letter of the *first* word?": "a"
+	  }
 
 }
