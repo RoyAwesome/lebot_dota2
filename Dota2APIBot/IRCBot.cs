@@ -64,6 +64,10 @@ namespace Dota2APIBot
 
             RegisterCommand("user", UserMod);
             RegisterCommand("reload", Reload);
+
+            RegisterCommand("addcaptcha", AddCaptcha);
+
+
         }
 
 
@@ -115,6 +119,7 @@ namespace Dota2APIBot
         }
 
 
+
         void IRCBot_ConnectionComplete(object sender, EventArgs e)
         {
             foreach (string channel in Settings.BotChannels)
@@ -157,11 +162,32 @@ namespace Dota2APIBot
 
         }
 
+        public string AddCaptcha(IrcCommand command)
+        {
+            if (!AccessCheck(command)) return "No Permision";
+
+            if (command.Parameters.Length != 1 || !command.Parameters[0].Contains("hastebin.com/raw/")) return "'.addcaptcha <hastebinlink>'  First line should be the captcha, second line the answer";
+            
+
+
+            string data = QuickDownload(command.Parameters[0]);
+
+            string[] spl = data.Split('\n');
+
+            Settings.VDCCaptchas[spl[0]] = spl[1];
+
+            Settings.Save();
+
+
+            return "Added";
+        }
+
+  
         string Reload(IrcCommand command)
         {
             if (!AccessCheck(command)) return "No Permision";
 
-            Settings = JsonConvert.DeserializeObject<BotSettings>("BotSettings.txt");
+            Settings = JsonConvert.DeserializeObject<BotSettings>(File.ReadAllText("BotSettings.txt"));
 
             return "Done";
 
@@ -428,9 +454,9 @@ namespace Dota2APIBot
             }
             else
             {
-                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);
+                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);                
                 if (functions.Count() > 1) return "Ambiguous function name: " + FunctionName + ".  Please use ClassName.FunctionName";
-                func = functions.First();
+                func = functions.FirstOrDefault();
             }
             
 
@@ -520,9 +546,9 @@ namespace Dota2APIBot
             }
             else
             {
-                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);
+                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);               
                 if(functions.Count() > 1) return "Ambiguous function name: " + FunctionName + ".  Please use ClassName.FunctionName";
-                func = functions.First();
+                func = functions.FirstOrDefault();
             }
             
 

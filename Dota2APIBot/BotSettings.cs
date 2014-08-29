@@ -19,9 +19,11 @@ namespace Dota2APIBot
         public bool Logging { get; set; }
         public string DatabaseFilename { get; set; }
 
+        public Dictionary<string, string> VDCCaptchas { get; set; }
+
         public void Save()
         {
-            File.WriteAllText("BotSettings.txt", JsonConvert.SerializeObject(this));
+            File.WriteAllText("BotSettings.txt", JsonConvert.SerializeObject(this, Formatting.Indented));
         }
     }
 }

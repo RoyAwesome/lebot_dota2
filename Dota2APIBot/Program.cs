@@ -16,11 +16,13 @@ namespace Dota2APIBot
 {
     class Program
     {
+        public static IRCBot bot;
+
         static void Main(string[] args)
         {
-            
+           
             string name = "lebot";
-            IRCBot bot = new IRCBot("irc.gamesurge.net", new IrcUser(name, name));
+            bot = new IRCBot("irc.gamesurge.net", new IrcUser(name, name));
 
             bot.Run();
 
@@ -38,7 +40,8 @@ namespace Dota2APIBot
                 Thread.Sleep(1000);
 
             };
-            
+           
+
                    /*   
             FunctionDB db = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText("FunctionDB.txt"));
 

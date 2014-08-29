@@ -24,19 +24,7 @@ namespace Dota2APIBot
 
         public const string APIPage = VDCWiki + "/w/index.php?title=Dota_2_Workshop_Tools/Scripting/API";
 
-
-        static Dictionary<string, string> Captchas = new Dictionary<string, string>()
-        {
-            {"There are three words that make up this site's name. What is the first letter of the *second* word?", "d"},
-            {"What is Valve CEO Gabe Newell's first name?", "gabe"},
-            {"What is the company name in 'Valve Developer Community?'", "valve"},
-            {"This site's name is three words. What is the first letter of the *third* word?", "c"},
-            {"This site's name consists of three words. What is the first letter of the *first* word?", "v"},
-
-
-        };
-
-    
+   
 
         public static void ConnectToWiki(BotSettings settings)
         {
@@ -183,7 +171,18 @@ namespace Dota2APIBot
 
                 string captcha = text.Substring(s, e - s);
 
-                string answer = Captchas[captcha];
+                BotSettings settings = JsonConvert.DeserializeObject<BotSettings>(File.ReadAllText("BotSettings.txt"));
+
+                if (!settings.VDCCaptchas.ContainsKey(captcha))
+                {
+                    File.AppendAllText("unknowncaptchas.txt", captcha);
+                    Program.bot.SendMessage("#dota2api", "I had a problem with a captcha, cannot write " + Page);
+                    Program.bot.SendMessage("#dota2api", "The captcha was: " + captcha.Haste());
+                    Program.bot.SendMessage("#dota2api", "Add the captcha with .addcaptcha and then force this page with .writepage");
+                    return;
+                }
+
+                string answer = settings.VDCCaptchas[captcha];
 
                 label = @"id=""wpCaptchaId"" value=""";
                 s = text.IndexOf(label) + label.Length;
