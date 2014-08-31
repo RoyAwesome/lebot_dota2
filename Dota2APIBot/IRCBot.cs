@@ -443,6 +443,33 @@ namespace Dota2APIBot
                 return "Replaced";
             }
 
+            if(FunctionName == "<dump>")
+            {
+                if (command.Parameters.Length != 2) return ".function <dump> functionName";
+
+                string functionName = command.Parameters[1];
+
+                Function f;
+                if (functionName.Contains("."))
+                {
+                    string[] spl = functionName.Split('.');
+                    functionName = spl[1];
+                    string ClassName = spl[0];
+                    f = database.Functions.FirstOrDefault(x => x.FunctionName == functionName && ClassName == x.Class);
+                }
+                else
+                {
+                    IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == functionName);
+                    if (functions.Count() > 1) return "Ambiguous function name: " + functionName + ".  Please use ClassName.FunctionName";
+                    f = functions.FirstOrDefault();
+                }
+
+                if (f == null) return "Function Not Found";
+
+
+                return "Done: " + JsonConvert.SerializeObject(f, Formatting.Indented).Haste();
+
+            }
 
             Function func;
             if (FunctionName.Contains("."))
