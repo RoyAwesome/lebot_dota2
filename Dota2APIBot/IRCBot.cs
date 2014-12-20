@@ -418,6 +418,22 @@ namespace Dota2APIBot
                 database.Save();
                 return "Added " + f.GetQualifiedName();
             }
+            if (FunctionName == "<addall>")
+            {
+                if (!command.Parameters[1].StartsWith("http://hastebin.com/raw/")) return "Please give me a raw hastebin link with the json blob to add";
+
+                string json = QuickDownload(command.Parameters[1]);
+                Function[] funcs = JsonConvert.DeserializeObject<Function[]>(json);
+                foreach(Function f in funcs)
+                {
+                    f.LastUpdate = DateTime.Now;
+
+                    database.Functions.Add(f);
+                }
+              
+                database.Save();
+                return "Added " + funcs.Length + " functions";
+            }
 
             if (FunctionName == "<replace>")
             {
