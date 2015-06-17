@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Dota2APIBot
 {
-    public class ClassType
+    public class ClassType : ICloneable
     {
         public string ClassName { get; set; }
         public string Description { get; set; }
@@ -20,9 +20,20 @@ namespace Dota2APIBot
             Accessor = "Unknown";
             BaseClass = "";
         }
+
+        public object Clone()
+        {
+            return new ClassType()
+            {
+                ClassName = this.ClassName,
+                Description = this.Description,
+                Accessor = this.Accessor,
+                BaseClass = this.BaseClass
+            };
+        }
     }
 
-    public class Param
+    public class Param : ICloneable
     {
         public string Name { get; set; }
         public string Type { get; set; }
@@ -35,10 +46,18 @@ namespace Dota2APIBot
             Description = "No Description Set";
         }
 
-
+        public object Clone()
+        {
+            return new Param()
+            {
+                Name = this.Name,
+                Type = this.Type,
+                Description = this.Description
+            };
+        }
     }
 
-    public class Function
+    public class Function : ICloneable
     {
         public string FunctionName { get; set; }
         public string Class { get; set; }
@@ -63,6 +82,26 @@ namespace Dota2APIBot
 
             Example = "";
             LastUpdate = DateTime.Now;
+        }
+
+        public object Clone()
+        {
+            Function f = new Function()
+            {
+                FunctionName = this.FunctionName,
+                Class = this.Class,
+                FunctionDescription = this.FunctionDescription,
+                ReturnType = this.ReturnType,
+                ReturnDescription = this.ReturnDescription,
+                Example = this.Example,
+                LastUpdate = this.LastUpdate,
+            };
+
+            foreach(Param p in Params)
+            {
+                f.Params.Add(p.Clone() as Param);
+            }
+            return f;
         }
 
         public string GetQualifiedName()
@@ -251,6 +290,8 @@ namespace Dota2APIBot
 
             return page.ToString();
         }
+
+       
     }
 
 

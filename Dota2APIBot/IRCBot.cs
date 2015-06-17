@@ -56,6 +56,7 @@ namespace Dota2APIBot
             RegisterCommand("class", ModifyClass);
             RegisterCommand("function", FunctionMod);
             RegisterCommand("param", ParamMod);
+            RegisterCommand("diffdb", DiffDB);
             RegisterCommand("dumpwiki", DumpWiki);
             RegisterCommand("writepage", ForceWriteWikiPage);
 
@@ -67,9 +68,27 @@ namespace Dota2APIBot
 
             RegisterCommand("addcaptcha", AddCaptcha);
 
+            RegisterCommand("insult", InsultBot);
+            
+
 
         }
 
+        public string InsultBot(IrcCommand command)
+        {
+            Random rng = new Random();
+            //Get a random bot
+            string bot = Settings.OtherBots[rng.Next(0, Settings.OtherBots.Count)];
+
+            //get an insult
+            string insult = Settings.Insults[rng.Next(0, Settings.Insults.Count)];
+
+            //replace the name
+            insult = insult.Replace("%s", bot);
+
+            //Sling it
+            return insult;
+        }
 
         public void UpdatePages(bool force = false)
         {
@@ -321,6 +340,18 @@ namespace Dota2APIBot
                 database.Save();
                 return "Added " + f.ClassName;
             }
+            if(ClassName == "<delete>")
+            {
+                ClassType c = database.Classes.FirstOrDefault(x => x.ClassName == command.Parameters[1]);
+                if (c == null) return "Class not found";
+
+                database.Classes.Remove(c);
+                int funcs = database.Functions.RemoveAll(x => x.Class == c.ClassName);                
+                database.Save();
+
+                return "Removed " + c.ClassName + " and " + funcs + " functions";
+
+            }
 
 
 
@@ -486,6 +517,7 @@ namespace Dota2APIBot
                 return "Done: " + JsonConvert.SerializeObject(f, Formatting.Indented).Haste();
 
             }
+            
 
             Function func;
             if (FunctionName.Contains("."))
@@ -646,6 +678,44 @@ namespace Dota2APIBot
             WebClient wc = new WebClient();
             return wc.DownloadString(url);
         }
+
+
+
+        public string DiffDB(IrcCommand command)
+        {
+            if (!AccessCheck(command))
+            {
+                return "No Permision";
+            }
+
+            string haste = QuickDownload(command.Parameters[0]);
+
+            FunctionDB diff = JsonConvert.DeserializeObject<FunctionDB>(haste);
+
+            FunctionDB database = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText(Settings.DatabaseFilename));
+
+            foreach (Function f in diff.Functions)
+            {
+                
+                Function d = database.Functions.FirstOrDefault(x => x.GetQualifiedName() == f.GetQualifiedName());
+                if(d == null)
+                {
+                    
+                    database.Functions.Add(f);
+                }
+                else
+                {
+                    
+                    database.Functions.Remove(d);
+                    database.Functions.Add(f);
+                }
+                f.LastUpdate = DateTime.Now;
+            }
+            database.Save();
+
+            return "Done";
+        }
+
     }
 
 }

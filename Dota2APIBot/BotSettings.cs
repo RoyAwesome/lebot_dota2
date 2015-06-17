@@ -18,6 +18,8 @@ namespace Dota2APIBot
         public string VDCPassword { get; set; }
         public bool Logging { get; set; }
         public string DatabaseFilename { get; set; }
+        public List<string> Insults { get; set; }
+        public List<string> OtherBots { get; set; }
 
         public Dictionary<string, string> VDCCaptchas { get; set; }
 

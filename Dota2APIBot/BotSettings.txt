@@ -29,6 +29,26 @@
 	    "What is the name of the company that this site is named after?": "valve",
 	    "There are three words that make up this site's name. What is the *second* letter of the *second* word?": "e",
 	    "This site's name consists of three words. What is the *second* letter of the *first* word?": "a"
-	  }
+	  },
 
+	  "Insults":
+	  {
+		"%s fookin wanker",
+		"6675636b206f6666 %s",
+		"i'm gonna kick your ass %s",
+		"%s is what, juicyfruits bot?",
+		"%s 凸(｀△´＋）",
+		"suck my data %s",
+		"only %s can be so retarded"
+	  },
+
+	  "OtherBots":
+	  {
+		"Renol",
+		"Rabscuttle",
+		"ChanServ",
+		"idler2",
+		"DR-18",
+		"not-3936"
+	  }
 }
