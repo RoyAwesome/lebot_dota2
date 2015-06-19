@@ -20,29 +20,29 @@ namespace Dota2APIBot
 
         static void Main(string[] args)
         {
-            
-             string name = "lebot";
-             bot = new IRCBot("irc.gamesurge.net", new IrcUser(name, name));
+              
+                string name = "lebot";
+                bot = new IRCBot("irc.gamesurge.net", new IrcUser(name, name));
 
-             bot.Run();
+                bot.Run();
 
-             TimeSpan WikiPushInterval = TimeSpan.FromHours(3);
+                TimeSpan WikiPushInterval = TimeSpan.FromHours(3);
 
-             DateTime NextUpdate = DateTime.Now + WikiPushInterval;
-             while (true)
-             {
-                 if(DateTime.Now > NextUpdate)
-                 {
-                     bot.UpdatePages();
-                     NextUpdate = DateTime.Now + WikiPushInterval;
-                 }
+                DateTime NextUpdate = DateTime.Now + WikiPushInterval;
+                while (true)
+                {
+                    if(DateTime.Now > NextUpdate)
+                    {
+                        bot.UpdatePages();
+                        NextUpdate = DateTime.Now + WikiPushInterval;
+                    }
 
-                 Thread.Sleep(1000);
+                    Thread.Sleep(1000);
 
-             };
-            
-                      
+                };
+             
 
+            //ParseDotaDumpDiff("dotascriptapioutput.txt");
         }
 
         private static void ParseDotaDumpDiff(string data)
@@ -145,7 +145,7 @@ namespace Dota2APIBot
                     l = l.Replace("---[[", "");
                     l = l.Replace(" ]]", "").Trim();
 
-                    if (l.Contains(' ')) l = l.Substring(0, l.IndexOf(' ')).Trim(); //If there is a space, that means we have a description.  Remove the function name
+                    if (l.Contains(' ')) l = l.Substring(l.IndexOf(' ') + 1).Trim(); //If there is a space, that means we have a description.  Remove the function name
                                                                                     //from it and just use it
                     else l = ""; //If the above fails, the description only contains the function name.  Ignore it.  
 
@@ -259,7 +259,6 @@ namespace Dota2APIBot
 
             string[] lines = Data.Split('\n');
 
-            Function currentFunction;
             string CurrentClass = "Global";
 
             for (int i = 0; i < lines.Length; i++)

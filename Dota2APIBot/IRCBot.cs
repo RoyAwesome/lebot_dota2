@@ -51,10 +51,13 @@ namespace Dota2APIBot
 
             this.RawMessageRecieved += bot_RawMessage;
 
+            RegisterCommand("function", FunctionMod);
+            RegisterCommand("f", FunctionMod);
+
 
             RegisterCommand("ping", Ping);
             RegisterCommand("class", ModifyClass);
-            RegisterCommand("function", FunctionMod);
+            
             RegisterCommand("param", ParamMod);
             RegisterCommand("diffdb", DiffDB);
             RegisterCommand("dumpwiki", DumpWiki);
@@ -69,16 +72,36 @@ namespace Dota2APIBot
             RegisterCommand("addcaptcha", AddCaptcha);
 
             RegisterCommand("insult", InsultBot);
-            
+
+            RegisterCommand("help", Help);
+            RegisterCommand("?", Help);
 
 
+        }
+        public string Help(IrcCommand command)
+        {
+            return "https://developer.valvesoftware.com/wiki/Dota_2_Workshop_Tools/Community/IRC/lebot";
         }
 
         public string InsultBot(IrcCommand command)
         {
             Random rng = new Random();
             //Get a random bot
-            string bot = Settings.OtherBots[rng.Next(0, Settings.OtherBots.Count)];
+            string bot = "";
+            if (command.Parameters.Length == 1)
+            {
+                bot = command.Parameters[0];
+                if (!Settings.OtherBots.Contains(bot))
+                {
+                    return bot + " isn't a bot.  He is pretty chill";
+                }
+            }
+            else
+            {
+                bot = Settings.OtherBots[rng.Next(0, Settings.OtherBots.Count)];
+            }
+
+
 
             //get an insult
             string insult = Settings.Insults[rng.Next(0, Settings.Insults.Count)];
@@ -92,8 +115,10 @@ namespace Dota2APIBot
 
         public void UpdatePages(bool force = false)
         {
+           
             Worker = new Thread(() =>
             {
+
                 FunctionDB database = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText(Settings.DatabaseFilename));
 
                 Total = database.Functions.Count;
@@ -101,6 +126,7 @@ namespace Dota2APIBot
                 WikiTools.ConnectToWiki(Settings);
 
                 bool Updated = false;
+               
 
                 for (int i = 0; i < database.Functions.Count; i++)
                 {
@@ -113,11 +139,30 @@ namespace Dota2APIBot
                     PageBeingWritten = pageName;
                     Done = i;
                     string wikiText = f.ToDetailedWikiFormat();
+                    try
+                    {
+                        WikiTools.WriteTextToPage(pageName, wikiText);
+                    }
+                    catch (Exception e)
+                    {
+                        
+                        //WRite an exception
+                        File.WriteAllText(DateTime.Now.ToString("ddMM-hhmm") + "Exception.txt", e.ToString());
+                                                                        
+                        Program.bot.SendMessage("#dota2api", "I pooped out an error while writing " + pageName + ": " + e.ToString().Haste());
 
-                    WikiTools.WriteTextToPage(pageName, wikiText);
+                        Worker = null;
+                        return; //Kill the loop
+
+                    }
+
 
                     Updated = true;
+    
+
+                    Thread.Sleep(200);
                 }
+                
 
                 if (Updated) WikiTools.WriteTextToPage("", database.WikiDump());
 
@@ -128,8 +173,12 @@ namespace Dota2APIBot
 
 
                 Worker = null;
+
+                Program.bot.SendMessage("#dota2api", "Completed a wiki write job");
+
             });
 
+          
 
 
 
@@ -186,7 +235,7 @@ namespace Dota2APIBot
             if (!AccessCheck(command)) return "No Permision";
 
             if (command.Parameters.Length != 1 || !command.Parameters[0].Contains("hastebin.com/raw/")) return "'.addcaptcha <hastebinlink>'  First line should be the captcha, second line the answer";
-            
+
 
 
             string data = QuickDownload(command.Parameters[0]);
@@ -201,7 +250,7 @@ namespace Dota2APIBot
             return "Added";
         }
 
-  
+
         string Reload(IrcCommand command)
         {
             if (!AccessCheck(command)) return "No Permision";
@@ -234,7 +283,17 @@ namespace Dota2APIBot
             string functionName = command.Parameters[0];
 
 
+
             FunctionDB database = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText(Settings.DatabaseFilename));
+
+            if (functionName == "front")
+            {
+                WikiTools.ConnectToWiki(Settings);
+                WikiTools.WriteTextToPage("", database.WikiDump());
+
+                return "Done";
+            }
+
             Function f = database.Functions.FirstOrDefault(x => x.FunctionName == functionName);
             if (f == null) return "Function not found";
 
@@ -340,16 +399,42 @@ namespace Dota2APIBot
                 database.Save();
                 return "Added " + f.ClassName;
             }
-            if(ClassName == "<delete>")
+            if (ClassName == "<delete>")
             {
                 ClassType c = database.Classes.FirstOrDefault(x => x.ClassName == command.Parameters[1]);
                 if (c == null) return "Class not found";
 
                 database.Classes.Remove(c);
-                int funcs = database.Functions.RemoveAll(x => x.Class == c.ClassName);                
+                int funcs = database.Functions.RemoveAll(x => x.Class == c.ClassName);
                 database.Save();
 
                 return "Removed " + c.ClassName + " and " + funcs + " functions";
+
+            }
+            if (ClassName == "<rebuild>")
+            {
+                if (!AccessCheck(command)) return "No Access";
+
+                List<string> BrokenClasses = new List<string>();
+
+                foreach (Function f in database.Functions)
+                {
+                    if (database.Classes.FirstOrDefault(x => x.ClassName == f.Class) == null)
+                    {
+                        BrokenClasses.Add(f.Class);
+                        ClassType c = new ClassType();
+                        c.ClassName = f.Class;
+                        database.Classes.Add(c);
+                    }
+                }
+
+                if (BrokenClasses.Count == 0) return "No Broken classes found";
+
+                database.Save();
+
+                string bc = string.Join("\n", BrokenClasses);
+
+                return "Found " + BrokenClasses.Count + " broken classes: " + bc.Haste();
 
             }
 
@@ -455,13 +540,13 @@ namespace Dota2APIBot
 
                 string json = QuickDownload(command.Parameters[1]);
                 Function[] funcs = JsonConvert.DeserializeObject<Function[]>(json);
-                foreach(Function f in funcs)
+                foreach (Function f in funcs)
                 {
                     f.LastUpdate = DateTime.Now;
 
                     database.Functions.Add(f);
                 }
-              
+
                 database.Save();
                 return "Added " + funcs.Length + " functions";
             }
@@ -490,7 +575,7 @@ namespace Dota2APIBot
                 return "Replaced";
             }
 
-            if(FunctionName == "<dump>")
+            if (FunctionName == "<dump>")
             {
                 if (command.Parameters.Length != 2) return ".function <dump> functionName";
 
@@ -517,7 +602,7 @@ namespace Dota2APIBot
                 return "Done: " + JsonConvert.SerializeObject(f, Formatting.Indented).Haste();
 
             }
-            
+
 
             Function func;
             if (FunctionName.Contains("."))
@@ -529,11 +614,11 @@ namespace Dota2APIBot
             }
             else
             {
-                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);                
+                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);
                 if (functions.Count() > 1) return "Ambiguous function name: " + FunctionName + ".  Please use ClassName.FunctionName";
                 func = functions.FirstOrDefault();
             }
-            
+
 
             if (func == null) return "Function Not Found";
 
@@ -596,7 +681,7 @@ namespace Dota2APIBot
 
             string FunctionName = command.Parameters[0];
 
-            
+
 
             if (FunctionName == "list")
             {
@@ -612,7 +697,7 @@ namespace Dota2APIBot
                 return "(" + i + ") " + f.Params[i].Type + " " + f.Params[i].Name;
             }
             Function func;
-            if(FunctionName.Contains("."))
+            if (FunctionName.Contains("."))
             {
                 string[] spl = FunctionName.Split('.');
                 FunctionName = spl[1];
@@ -621,11 +706,11 @@ namespace Dota2APIBot
             }
             else
             {
-                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);               
-                if(functions.Count() > 1) return "Ambiguous function name: " + FunctionName + ".  Please use ClassName.FunctionName";
+                IEnumerable<Function> functions = database.Functions.Where(x => x.FunctionName == FunctionName);
+                if (functions.Count() > 1) return "Ambiguous function name: " + FunctionName + ".  Please use ClassName.FunctionName";
                 func = functions.FirstOrDefault();
             }
-            
+
 
 
 
@@ -696,16 +781,16 @@ namespace Dota2APIBot
 
             foreach (Function f in diff.Functions)
             {
-                
+
                 Function d = database.Functions.FirstOrDefault(x => x.GetQualifiedName() == f.GetQualifiedName());
-                if(d == null)
+                if (d == null)
                 {
-                    
+
                     database.Functions.Add(f);
                 }
                 else
                 {
-                    
+
                     database.Functions.Remove(d);
                     database.Functions.Add(f);
                 }
