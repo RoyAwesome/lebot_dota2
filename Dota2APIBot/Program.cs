@@ -20,8 +20,8 @@ namespace Dota2APIBot
 
         static void Main(string[] args)
         {
-              
-                string name = "lebot";
+#if !DIFFCREATOR  
+            string name = "lebot";
                 bot = new IRCBot("irc.gamesurge.net", new IrcUser(name, name));
 
                 bot.Run();
@@ -40,9 +40,10 @@ namespace Dota2APIBot
                     Thread.Sleep(1000);
 
                 };
-             
+#else
 
-            //ParseDotaDumpDiff("dotascriptapioutput.txt");
+            ParseDotaDumpDiff(args[0]);
+#endif
         }
 
         private static void ParseDotaDumpDiff(string data)
@@ -61,6 +62,7 @@ namespace Dota2APIBot
                 {
                     DiffDB.Functions.Add(parsedfunc.Clone() as Function);
 
+                    
                 }
                 else //Function exists, lets check to see if anything has changed
                 {
@@ -97,6 +99,28 @@ namespace Dota2APIBot
                         }
                         DiffDB.Functions.Add(c);
                     }
+                    else
+                    {
+                        bool changed = false;
+                        //Lets walk through the params and see if we have better names
+                        for (int i = 0; i < dbFunc.Params.Count; i++)
+                        {
+                            Param oldp = c.Params[i];
+                            Param newp = parsedfunc.Params[i];
+
+                            if(string.IsNullOrEmpty(oldp.Name))
+                            {
+                                oldp.Name = newp.Name;
+                                changed = true;                        
+                            }
+
+                        }
+
+                        if (changed)
+                            DiffDB.Functions.Add(c);
+                    }
+                   
+
 
                     if(string.IsNullOrEmpty(dbFunc.FunctionDescription) && !string.IsNullOrEmpty(parsedfunc.FunctionDescription)) // Do they have a better description?  Take it
                     {
@@ -107,6 +131,24 @@ namespace Dota2APIBot
                 }
 
             }
+            foreach(ClassType c in parsed.Classes)
+            {
+                ClassType oc = db.Classes.FirstOrDefault(x => x.ClassName == c.ClassName);
+                if(oc == null)
+                {
+                    DiffDB.Classes.Add(c);
+                }
+            }
+            DiffDB.Constants.AddRange(parsed.Constants);
+            foreach (ConstantGroup group in parsed.Constants)
+            {
+                //Get the previous constant group
+                
+
+
+
+            }
+
 
             File.WriteAllText("Diffdb.txt", JsonConvert.SerializeObject(DiffDB, Formatting.Indented));
 
@@ -114,7 +156,12 @@ namespace Dota2APIBot
             Console.WriteLine("Done");
 
         }
-
+        enum Parsing_E
+        {
+            None,
+            Function,
+            Enum,
+        }
         private static FunctionDB ParseScriptDump(string data)
         {
             FunctionDB parsedDB = new FunctionDB();
@@ -122,7 +169,13 @@ namespace Dota2APIBot
 
             string[] Text = data.Split('\n');
 
+
+            Parsing_E Parsing = Parsing_E.None;
+
             Function currentFunction = null;
+            ConstantGroup currentConstants = null;
+
+            string previousLine = "";
 
             foreach (string line in Text)
             {
@@ -133,33 +186,60 @@ namespace Dota2APIBot
                 //Three - means description, and the start of a new function definition
                 if (l.StartsWith("---"))
                 {
-                    if (currentFunction != null)
+                    if(Parsing == Parsing_E.Enum)
                     {
-                        Console.WriteLine("Error: Found a new function definition while already writing a function");
-                        return null;
+                        //Commit the enum
+                        //commit the changes
+                        parsedDB.Constants.Add(currentConstants);
+
+                        Console.WriteLine("Parsed " + currentConstants.EnumName);
+
+                        currentConstants = null;
+
+                        Parsing = Parsing_E.None;
                     }
 
-                    currentFunction = new Function();
+                    if (Parsing != Parsing_E.None)
+                    {
+                        throw new Exception("Error: Found a new definition while already writing a function");
+                    }
 
-                    //Remove the comment lines
-                    l = l.Replace("---[[", "");
-                    l = l.Replace(" ]]", "").Trim();
+                    l = l.Replace("---", "").Trim();
 
-                    if (l.Contains(' ')) l = l.Substring(l.IndexOf(' ') + 1).Trim(); //If there is a space, that means we have a description.  Remove the function name
-                                                                                    //from it and just use it
-                    else l = ""; //If the above fails, the description only contains the function name.  Ignore it.  
+                    if (l.StartsWith("[["))
+                    {
+                        currentFunction = new Function();
 
-                    //Add this line as the current functions description
-                    currentFunction.FunctionDescription = l;
+                        //Remove the comment lines
+                        l = l.Replace("[[", "");
+                        l = l.Replace(" ]]", "").Trim();
 
+                        if (l.Contains(' ')) l = l.Substring(l.IndexOf(' ') + 1).Trim(); //If there is a space, that means we have a description.  Remove the function name
+                                                                                         //from it and just use it
+                        else l = ""; //If the above fails, the description only contains the function name.  Ignore it.  
+
+                        //Add this line as the current functions description
+                        currentFunction.FunctionDescription = l;
+
+                        Parsing = Parsing_E.Function;
+                    }
+                    else if(l.StartsWith("Enum"))
+                    {
+                        currentConstants = new ConstantGroup();
+
+                        l = l.Replace("Enum", "").Trim();
+                        currentConstants.EnumName = l;
+
+
+                        Parsing = Parsing_E.Enum;
+                    }
 
                 }
-                else if (l.StartsWith("--"))
+                else if (Parsing == Parsing_E.Function && l.StartsWith("--"))
                 {
                     if (currentFunction == null)
                     {
-                        Console.WriteLine("Error: Trying to add on to a function without a function created");
-                        return null;
+                        throw new Exception("Error: Parse a function when no function created");
                     }
 
                     //Possible cases
@@ -185,12 +265,12 @@ namespace Dota2APIBot
                     }
 
                 }
-                else if (l.StartsWith("function"))
+                else if (Parsing == Parsing_E.Function && l.StartsWith("function"))
                 {
                     if (currentFunction == null)
                     {
-                        Console.WriteLine("Error: Trying to add on to a function without a function created");
-                        return null;
+                        throw new Exception("Error: Trying to add on to a function without a function created");
+                       
                     }
 
                     //Pattern: function [ClassName:]FunctionName( param ...) end
@@ -228,22 +308,63 @@ namespace Dota2APIBot
 
 
                 }
+                else if(Parsing == Parsing_E.Enum && !string.IsNullOrEmpty(l)) //Modifer entry
+                {
+                    if(currentConstants == null)
+                    {
+                        throw new Exception("Tried to parse constant but group was null");
+                    }
+
+                    string[] Words = l.Split(' ');
+                    ConstantEntry ce = new ConstantEntry()
+                    {
+                        Name = Words[0],
+                        Value = Words[2]
+                    };
+                    if (l.Contains("--"))
+                    {
+                        string comment = l.Substring(l.IndexOf("--") + 2).Trim();
+                        ce.Description = comment;
+                    }
+
+                    currentConstants.Entries.Add(ce);
+
+                }
                 else if (string.IsNullOrEmpty(l))
                 {
-                    if (currentFunction == null)
+                    if(previousLine == line && Parsing == Parsing_E.None)
                     {
-                        Console.WriteLine("Error: Tried to commit a function when none was being worked on");
-                        return null;
+                        continue; //Skip multiple blank lines
                     }
-                    //Commit the changes
-                    parsedDB.Functions.Add(currentFunction);
+                    if (Parsing == Parsing_E.None)
+                    {
+                        throw new Exception("Tried to commit something when nothing was being worked on");                        
+                    }
+
+                    if(Parsing == Parsing_E.Function)
+                    {
+                        //Commit the changes
+                        parsedDB.Functions.Add(currentFunction);
 
 
-                    Console.WriteLine("Parsed " + currentFunction.GetQualifiedName());
+                        Console.WriteLine("Parsed " + currentFunction.GetQualifiedName());
 
-                    currentFunction = null;
+                        currentFunction = null;
+                    }
+                    if(Parsing == Parsing_E.Enum)
+                    {
+                        //commit the changes
+                        parsedDB.Constants.Add(currentConstants);
+
+                        Console.WriteLine("Parsed " + currentConstants.EnumName);
+
+                        currentConstants = null;
+                    }
+
+                    Parsing = Parsing_E.None;
                 }
 
+                previousLine = line;
             }
 
             return parsedDB;

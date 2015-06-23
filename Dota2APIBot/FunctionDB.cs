@@ -11,9 +11,10 @@ namespace Dota2APIBot
     class FunctionDB
     {
         public List<Function> Functions = new List<Function>();
-        public List<ClassType> Classes = new List<ClassType>();
+        public List<ClassType> Classes = new List<ClassType>();        
         public string DatabaseHeader = "";
         public DateTime LastPush = DateTime.Now;
+        public List<ConstantGroup> Constants = new List<ConstantGroup>();
 
 
         public string[] LookupFunction(string searchText)
@@ -164,6 +165,12 @@ namespace Dota2APIBot
                 builder.AppendLine("|}");
                 builder.AppendLine();
                 builder.AppendLine();
+            }
+
+            builder.AppendLine("=== Constants ===");
+            foreach(ConstantGroup cg in Constants)
+            {
+                builder.AppendLine(cg.ToWikiFormat());
             }
 
            return builder.ToString();

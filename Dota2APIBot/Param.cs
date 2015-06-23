@@ -294,7 +294,73 @@ namespace Dota2APIBot
        
     }
 
+    public class ConstantEntry : ICloneable
+    {
+        public string Name { get; set; }
+        public string Value { get; set; }
+        public string Description { get; set; }
 
+        public object Clone()
+        {
+            return new ConstantEntry()
+            {
+                Name = this.Name,
+                Value = this.Value,
+                Description = this.Description,
+            };
+        }
+    }
+
+    public class ConstantGroup : ICloneable
+    {
+        public string EnumName { get; set; }      
+
+        public List<ConstantEntry> Entries = new List<ConstantEntry>();
+
+        
+        public object Clone()
+        {
+            ConstantGroup cg = new ConstantGroup()
+            {
+                EnumName = this.EnumName
+            };
+
+            foreach(ConstantEntry entry in Entries)
+            {
+                cg.Entries.Add(entry.Clone() as ConstantEntry);
+            }
+
+            return cg;
+        }
+
+        public string ToWikiFormat()
+        {
+            StringBuilder page = new StringBuilder();
+
+            page.Append("==== ");
+            page.Append(EnumName);
+            page.AppendLine(" ====");
+
+            page.AppendLine(@"{| class=""standard-table"" style=""width: 50%;""");
+            page.AppendLine("! Name");
+            page.AppendLine("! Value");
+            page.AppendLine("! Description");
+
+            foreach(ConstantEntry e in Entries.OrderBy(x => long.Parse(x.Value)))
+            {
+
+                page.AppendLine("|-");
+                page.AppendLine("| " + e.Name);
+                page.AppendLine("| " + e.Value);
+                page.AppendLine("| " + e.Description);
+
+            }
+
+            page.AppendLine("|}");
+
+            return page.ToString();
+        }
+    }
 
 
 }

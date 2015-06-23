@@ -91,10 +91,15 @@ namespace Dota2APIBot
             if (command.Parameters.Length == 1)
             {
                 bot = command.Parameters[0];
+                if (bot == "lebot")
+                {
+                    return "That lebot guy is an amazing bot.  Well written and very useful.  All bots should strive to be him.";
+                }
                 if (!Settings.OtherBots.Contains(bot))
                 {
                     return bot + " isn't a bot.  He is pretty chill";
                 }
+                
             }
             else
             {
@@ -162,9 +167,13 @@ namespace Dota2APIBot
 
                     Thread.Sleep(200);
                 }
-                
 
-                if (Updated) WikiTools.WriteTextToPage("", database.WikiDump());
+
+                if (Updated)
+                {
+                    WikiTools.WriteTextToPage("", database.WikiDump());
+                    Program.bot.SendMessage("#dota2api", "Completed a wiki write job");
+                }
 
 
                 database = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText(Settings.DatabaseFilename));
@@ -174,7 +183,7 @@ namespace Dota2APIBot
 
                 Worker = null;
 
-                Program.bot.SendMessage("#dota2api", "Completed a wiki write job");
+                
 
             });
 
@@ -796,6 +805,34 @@ namespace Dota2APIBot
                 }
                 f.LastUpdate = DateTime.Now;
             }
+            foreach(ClassType t in diff.Classes)
+            {
+                ClassType c = database.Classes.FirstOrDefault(x => x.ClassName == t.ClassName);
+                if(c == null)
+                {
+                    database.Classes.Add(t);
+                }
+                else
+                {
+                    SendMessage(command.Destination, "Tried to add class " + t.ClassName + " but it already exists! (Old/Broken diff?)");
+                }
+       
+            }
+            if (database.Constants == null) database.Constants = new List<ConstantGroup>(); //Add a ConstantGroup list if we dont have one
+            foreach(ConstantGroup cg in diff.Constants)
+            {
+                ConstantGroup oldcg = database.Constants.FirstOrDefault(x => x.EnumName == cg.EnumName);
+                if(oldcg == null)
+                {
+                    database.Constants.Add(cg);
+                }
+                else
+                {
+                    database.Constants.Remove(oldcg);
+                    database.Constants.Add(cg);
+                }
+            }
+
             database.Save();
 
             return "Done";
