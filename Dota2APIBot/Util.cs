@@ -61,7 +61,11 @@ namespace Dota2APIBot
         }
 
 
-      
+        public static string QuickDownload(string url)
+        {
+            WebClient wc = new WebClient();
+            return wc.DownloadString(url);
+        }
 
     }
 }

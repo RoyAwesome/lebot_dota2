@@ -48,7 +48,7 @@ namespace Dota2APIBot
 
         private static void ParseDotaDumpDiff(string data)
         {
-            FunctionDB db = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText("FunctionDB.txt"));
+            FunctionDB db = JsonConvert.DeserializeObject<FunctionDB>(Util.QuickDownload("http://rhoyne.cloudapp.net/FunctionDB.txt"));
 
             FunctionDB parsed = ParseScriptDump(File.ReadAllText(data));
 
@@ -99,6 +99,10 @@ namespace Dota2APIBot
                         }
                         DiffDB.Functions.Add(c);
                     }
+                    else if(parsedfunc.ReturnType != dbFunc.ReturnType)
+                    {
+                        DiffDB.Functions.Add(c);
+                    }
                     else
                     {
                         bool changed = false;
@@ -139,12 +143,35 @@ namespace Dota2APIBot
                     DiffDB.Classes.Add(c);
                 }
             }
-            DiffDB.Constants.AddRange(parsed.Constants);
             foreach (ConstantGroup group in parsed.Constants)
             {
                 //Get the previous constant group
-                
 
+                ConstantGroup ogcg = db.Constants.FirstOrDefault(x => x.EnumName == group.EnumName);
+                if(ogcg == null)
+                {
+                    DiffDB.Constants.Add(group.Clone() as ConstantGroup);
+                }
+                else
+                {
+                    foreach(ConstantEntry entry in group.Entries)
+                    {
+                        var oge = ogcg.Entries.FirstOrDefault(x => x.Name == entry.Name);
+
+                        if(oge == null)
+                        {
+                            DiffDB.Constants.Add(group.Clone() as ConstantGroup);
+                            break;
+                        }
+                        else if(oge.Value != entry.Value)
+                        {
+                            DiffDB.Constants.Add(group.Clone() as ConstantGroup);
+                            break;
+                        }
+                    }
+                }
+
+                
 
 
             }

@@ -21,12 +21,17 @@ namespace Dota2APIBot
         {
             return Functions.Where(x => x.FunctionName.Contains(searchText, StringComparison.OrdinalIgnoreCase)).Select(x => x.ToIRCFormat()).ToArray();
         }
-
+        /*
         public void Save()
+        {
+            Save("FunctionDB.txt");          
+        }*/
+
+        public void Save(string path)
         {
             string text = JsonConvert.SerializeObject(this, Formatting.Indented);
 
-            File.WriteAllText("FunctionDB.txt", text);
+            File.WriteAllText(path, text);
         }
 
         public string RSTDump()

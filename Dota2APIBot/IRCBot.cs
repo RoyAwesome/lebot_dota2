@@ -178,7 +178,7 @@ namespace Dota2APIBot
 
                 database = JsonConvert.DeserializeObject<FunctionDB>(File.ReadAllText(Settings.DatabaseFilename));
                 database.LastPush = DateTime.Now;
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
 
 
                 Worker = null;
@@ -405,7 +405,7 @@ namespace Dota2APIBot
                 //f.LastUpdate = DateTime.Now;
 
                 database.Classes.Add(f);
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
                 return "Added " + f.ClassName;
             }
             if (ClassName == "<delete>")
@@ -415,7 +415,7 @@ namespace Dota2APIBot
 
                 database.Classes.Remove(c);
                 int funcs = database.Functions.RemoveAll(x => x.Class == c.ClassName);
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
 
                 return "Removed " + c.ClassName + " and " + funcs + " functions";
 
@@ -439,7 +439,7 @@ namespace Dota2APIBot
 
                 if (BrokenClasses.Count == 0) return "No Broken classes found";
 
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
 
                 string bc = string.Join("\n", BrokenClasses);
 
@@ -481,7 +481,7 @@ namespace Dota2APIBot
             if (action == "view") return prop.GetValue(clazz).ToString();
 
 
-            if (action == "modify") database.Save();
+            if (action == "modify") database.Save(Settings.DatabaseFilename);
 
             return "[" + action + "] " + ClassName + "'s " + property + " has been set";
         }
@@ -540,7 +540,7 @@ namespace Dota2APIBot
                 f.LastUpdate = DateTime.Now;
 
                 database.Functions.Add(f);
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
                 return "Added " + f.GetQualifiedName();
             }
             if (FunctionName == "<addall>")
@@ -556,7 +556,7 @@ namespace Dota2APIBot
                     database.Functions.Add(f);
                 }
 
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
                 return "Added " + funcs.Length + " functions";
             }
 
@@ -579,7 +579,7 @@ namespace Dota2APIBot
                 f.LastUpdate = DateTime.Now;
                 database.Functions.Remove(oldfunc);
                 database.Functions.Add(f);
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
 
                 return "Replaced";
             }
@@ -660,7 +660,7 @@ namespace Dota2APIBot
             if (action == "modify")
             {
                 func.LastUpdate = DateTime.Now;
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
             }
 
             return "[" + action + "] " + FunctionName + "'s " + property + " is now has been set";
@@ -761,7 +761,7 @@ namespace Dota2APIBot
             if (action == "modify")
             {
                 func.LastUpdate = DateTime.Now;
-                database.Save();
+                database.Save(Settings.DatabaseFilename);
             }
 
             return "[" + action + "] " + FunctionName + "'s " + property + " is now has been set";
@@ -796,12 +796,14 @@ namespace Dota2APIBot
                 {
 
                     database.Functions.Add(f);
+                    Console.WriteLine("Added " + f.GetQualifiedName());
                 }
                 else
                 {
 
                     database.Functions.Remove(d);
                     database.Functions.Add(f);
+                    Console.WriteLine("Added " + f.GetQualifiedName());
                 }
                 f.LastUpdate = DateTime.Now;
             }
@@ -811,6 +813,7 @@ namespace Dota2APIBot
                 if(c == null)
                 {
                     database.Classes.Add(t);
+                    Console.WriteLine("Added " + t.ClassName);
                 }
                 else
                 {
@@ -825,15 +828,17 @@ namespace Dota2APIBot
                 if(oldcg == null)
                 {
                     database.Constants.Add(cg);
+                    Console.WriteLine("Added " + cg.EnumName);
                 }
                 else
                 {
                     database.Constants.Remove(oldcg);
                     database.Constants.Add(cg);
+                    Console.WriteLine("Added " + cg.EnumName);
                 }
             }
 
-            database.Save();
+            database.Save(Settings.DatabaseFilename);
 
             return "Done";
         }
