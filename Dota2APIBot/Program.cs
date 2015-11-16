@@ -101,6 +101,7 @@ namespace Dota2APIBot
                     }
                     else if(parsedfunc.ReturnType != dbFunc.ReturnType)
                     {
+                        c.ReturnType = parsedfunc.ReturnType;
                         DiffDB.Functions.Add(c);
                     }
                     else
